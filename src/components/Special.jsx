@@ -1,16 +1,14 @@
 import { useContext } from 'react';
-import './Orchids.css';
 import { ThemeContext } from './ThemeContext';
 
-export default function Orchids({
-    orchids,
-    onViewDetail,
-}) {
+export default function Natural({ orchids, onViewDetail }) {
     const { theme } = useContext(ThemeContext);
 
-    // Presentational component - nhận tất cả props từ Container
+    // filter orchids by special
+    const specialOrchids = orchids.filter(orchid => orchid.isSpecial === true);
 
     return (
+        // filter orchids by natural (wild)
         <div className="container-fluid px-4 py-3" style={{
             backgroundColor: theme.backgroundColor,
             color: theme.color,
@@ -25,14 +23,12 @@ export default function Orchids({
                         letterSpacing: '2px',
                         textShadow: '2px 2px 4px rgba(0,0,0,0.1)'
                     }}>
-                    🌺 Orchid Collection 🌺
+                    🌺 Special Orchids 🌺
                 </h1>
             </div>
 
-
-
             <div className='orchids-grid' style={{ backgroundColor: theme.backgroundColor, color: theme.color }}>
-                {orchids.map((orchid) => (
+                {specialOrchids.map((orchid) => (
                     <div className="orchid-card" key={orchid.id}
                         style={{
                             backgroundColor: theme.cardBackground,
@@ -44,9 +40,10 @@ export default function Orchids({
                             <h3 style={{ color: theme.headerColor }}>{orchid.name}</h3>
                             <p style={{ color: theme.cardText }}><strong style={{ color: theme.cardText }}>Origin:</strong> {orchid.origin}</p>
                             <p style={{ color: theme.cardText }}><strong style={{ color: theme.cardText }}>Category:</strong> {orchid.category}</p>
+                            <p style={{ color: theme.cardText }}><strong style={{ color: theme.cardText }}>Special:</strong> {orchid.isSpecial ? 'Yes' : 'No'}</p>
+                            <p style={{ color: theme.cardText }}><strong style={{ color: theme.cardText }}>Like:</strong> {orchid.numberOfLike}</p>
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: theme.cardText }}>
-
                                 <button className='detail-btn' onClick={() => onViewDetail(orchid)}
                                     style={{
                                         backgroundColor: theme.headerColor,
@@ -64,7 +61,7 @@ export default function Orchids({
                 ))}
 
             </div>
-        </div >
-    );
+        </div>
 
+    )
 }

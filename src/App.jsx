@@ -1,15 +1,26 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Navigation from './components/Navigation';
 import OrchidsContainer from './components/OrchidsContainer';
+import Detail from './components/Detail';
+import Contact from './components/Contact';
+import About from './components/About';
+import 'bootstrap/dist/css/bootstrap.min.css';
+
 
 function App() {
   return (
-    <>
-      <div style={{ marginTop: '3rem', marginBottom: '2rem', textAlign: 'center' }}>
-        <h1 style={{ color: '#6c3483', fontSize: '2.2rem', fontWeight: 'bold', letterSpacing: '2px' }}>
-          Orchid Collection
-        </h1>
-      </div>
-      <OrchidsContainer />
-    </>
+    <Router>
+      <Navigation />
+      <Routes>
+        <Route path="/" element={<OrchidsContainer />} />
+        <Route path="/detail/:id" element={<Detail />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/natural" element={<OrchidsContainer />} />
+        <Route path="/special" element={<OrchidsContainer />} />
+      </Routes>
+    </Router>
   );
 }
+
 export default App;
