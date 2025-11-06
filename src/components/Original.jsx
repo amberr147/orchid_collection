@@ -1,14 +1,38 @@
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { ThemeContext } from './ThemeContext';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchOrchids } from '../features/orchids/orchidsSlice';
 
-export default function Natural({ orchids, onViewDetail }) {
+export default function Original({ onViewDetail }) {
     const { theme } = useContext(ThemeContext);
-
-    // filter orchids by natural (wild)
+    const dispatch = useDispatch();
+    const orchids = useSelector(state => state.orchids.items);
+    const status = useSelector(state => state.orchids.status);
     const naturalOrchids = orchids.filter(orchid => orchid.isNatural === true);
 
+    useEffect(() => {
+        if (status === 'idle' || status === 'failed') {
+            dispatch(fetchOrchids());
+        }
+    }, [status, dispatch]);
+
+    if (status === 'loading' || status === 'idle') {
+        return (
+            <div className="container-fluid py-5 text-center" style={{ backgroundColor: theme.backgroundColor, color: theme.color, minHeight: '100vh' }}>
+                <h2>Loading...</h2>
+            </div>
+        );
+    }
+
+    if (!naturalOrchids.length) {
+        return (
+            <div className="container-fluid py-5 text-center" style={{ backgroundColor: theme.backgroundColor, color: theme.color, minHeight: '100vh' }}>
+                <h2>No natural orchids found!</h2>
+            </div>
+        );
+    }
+
     return (
-        // filter orchids by natural (wild)
         <div className="container-fluid px-4 py-3" style={{
             backgroundColor: theme.backgroundColor,
             color: theme.color,
