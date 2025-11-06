@@ -83,7 +83,7 @@ function BasicExample() {
                         >
                             <NavDropdown.Item as={Link} to="/special">🌸 Special Orchids</NavDropdown.Item>
                             <NavDropdown.Item as={Link} to="/natural">🌿 Natural Orchids</NavDropdown.Item>
-                            {user && (
+                            {user && user.role === 'admin' && (
                                 <>
                                     <NavDropdown.Divider />
                                     <NavDropdown.Item as={Link} to="/create">+ Add Orchid</NavDropdown.Item>
@@ -108,13 +108,18 @@ function BasicExample() {
                         </button>
 
                         {user ? (
-                            <button
-                                className="btn btn-outline-danger rounded-pill fw-semibold"
-                                onClick={handleLogout}
-                                style={{ padding: '8px 18px' }}
-                            >
-                                Logout
-                            </button>
+                            <>
+                                <Link to="/profile" className="btn btn-outline-secondary rounded-pill fw-semibold" style={{ padding: '8px 18px' }}>
+                                    Profile
+                                </Link>
+                                <button
+                                    className="btn btn-outline-danger rounded-pill fw-semibold"
+                                    onClick={handleLogout}
+                                    style={{ padding: '8px 18px' }}
+                                >
+                                    Logout
+                                </button>
+                            </>
                         ) : (
                             <button
                                 className="btn btn-outline-primary rounded-pill fw-semibold"

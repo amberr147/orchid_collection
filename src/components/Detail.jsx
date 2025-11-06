@@ -1,70 +1,110 @@
+// Component hiển thị rating bằng ngôi sao (hỗ trợ nửa sao)
+function StarRating({ rating }) {
+    const fullStars = Math.floor(rating);
+    const halfStar = rating - fullStars >= 0.5;
+    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+    return (
+        <span>
+            {[...Array(fullStars)].map((_, i) => (
+                <span key={"full" + i} style={{ color: '#FFD700', fontSize: '1.2em' }}>★</span>
+            ))}
+            {halfStar && <span key="half" style={{ color: '#FFD700', fontSize: '1.2em' }}>⯨</span>}
+            {[...Array(emptyStars)].map((_, i) => (
+                <span key={"empty" + i} style={{ color: '#ccc', fontSize: '1.2em' }}>★</span>
+            ))}
+            <span style={{ fontSize: '0.95em', color: '#555', marginLeft: 6 }}>{rating}</span>
+        </span>
+    );
+}
 import { useContext, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ThemeContext } from './ThemeContext';
 import { useSelector, useDispatch } from 'react-redux';
-import { deleteOrchid, fetchOrchids } from '../features/orchids/orchidsSlice';
-import { auth } from '../firebase';
+import { deleteOrchid, fetchOrchids, updateOrchid } from '../features/orchids/orchidsSlice';
+import orchidsData from '../service/orchidsService';
 import './Orchids.css';
 
 export default function Detail() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState(null);
+
+    const [ratingInput, setRatingInput] = useState(5);
+    const [commentInput, setCommentInput] = useState('');
+    const [feedbackError, setFeedbackError] = useState(null);
+    const [feedbackLoading, setFeedbackLoading] = useState(false);
+    const [orchidDetail, setOrchidDetail] = useState(null);
+
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { id } = useParams();
     const { theme, dark } = useContext(ThemeContext);
-    const orchid = useSelector(state => state.orchids.items.find(o => o.id === id));
+
+    const user = useSelector(state => state.user.user);
+    const orchidFromStore = useSelector(state => state.orchids.items.find(o => o.id === id));
     const status = useSelector(state => state.orchids.status);
 
-    const [ratingInput, setRatingInput] = useState(5);
-    const [txtComment, setTxtComment] = useState('');
-    const [feedbackLoading, setFeedbackLoading] = useState(false);
-    const [feedbackError, setFeedbackError] = useState(null);
+    useEffect(() => {
+        window.scrollTo(0, 0);
+        const loadOrchid = async () => {
+            if (orchidFromStore) {
+                setOrchidDetail(orchidFromStore);
+            } else {
+                try {
+                    const data = await orchidsData.fetchOrchidById(id);
+                    setOrchidDetail(data);
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+        };
+        if (status === 'idle' || status === 'failed') {
+            dispatch(fetchOrchids());
+        }
+        loadOrchid();
+    }, [status, dispatch, id, orchidFromStore]);
 
-    const hasFeedbackFromUser = user && orchid.feedback && orchid.feedback.some(f => f.author === user.email);
+    const hasFeedbackFromUser =
+        user && orchidDetail?.feedback && orchidDetail.feedback.some(f => f.author === user.email);
 
-    // Handle submit feedback
-    async function handleSubmitFeedback(e) {
+    const handleSubmitFeedback = async (e) => {
         e.preventDefault();
         if (!user) return;
-
         if (hasFeedbackFromUser) {
-            setFeedbackError('You have already submitted feedback for this orchid.');
+            setFeedbackError('Bạn đã gửi feedback cho hoa này rồi.');
             return;
         }
+
         setFeedbackLoading(true);
         setFeedbackError(null);
         try {
             const newFeedback = {
                 rating: Number(ratingInput),
-                comment: txtComment,
+                comment: commentInput,
                 author: user.email,
-                date: new Date().toISOString()
+                date: new Date().toISOString(),
             };
 
             const updated = {
-                ...orchid,
-                feedback: Array.isArray(orchid.feedback) ? [...orchid.feedback, newFeedback] : [newFeedback]
+                ...orchidDetail,
+                feedback: Array.isArray(orchidDetail.feedback)
+                    ? [...orchidDetail.feedback, newFeedback]
+                    : [newFeedback],
             };
 
-
-
-        } catch (error) {
-
+            // Gọi update qua Redux để đồng bộ lại store
+            await dispatch(updateOrchid({ id: orchidDetail.id, payload: updated })).unwrap();
+            // Lấy lại dữ liệu mới nhất từ store
+            setOrchidDetail(updated);
+            setCommentInput('');
+            setRatingInput(5);
+        } catch (err) {
+            console.error(err);
+            setFeedbackError('Lỗi khi gửi feedback.');
+        } finally {
+            setFeedbackLoading(false);
         }
-    }
-
-
-    const user = useSelector(state => state.user.user);
-
-    // Tự động fetchOrchids nếu chưa có dữ liệu và cuộn lên đầu trang khi vào Detail
-    useEffect(() => {
-        window.scrollTo(0, 0);
-        if (status === 'idle' || status === 'failed') {
-            dispatch(fetchOrchids());
-        }
-    }, [status, dispatch]);
+    };
 
     async function handleDelete(deleteId) {
         setDeleting(true);
@@ -80,7 +120,7 @@ export default function Detail() {
         }
     }
 
-    if (status === 'loading' || status === 'idle') {
+    if (status === 'loading' || status === 'idle' || !orchidDetail) {
         return (
             <div className="container-fluid py-5 text-center" style={{ backgroundColor: theme.backgroundColor, color: theme.color, minHeight: '100vh' }}>
                 <h2>Loading...</h2>
@@ -88,16 +128,7 @@ export default function Detail() {
         );
     }
 
-    if (!orchid) {
-        return (
-            <div className="container-fluid py-5 text-center" style={{ backgroundColor: theme.backgroundColor, color: theme.color, minHeight: '100vh' }}>
-                <h2>Orchid not found!</h2>
-                <button className="btn btn-primary mt-3" onClick={() => navigate('/')}>
-                    Back to Home
-                </button>
-            </div>
-        );
-    }
+    const orchid = orchidDetail;
 
     return (
         <div className="container-fluid py-5" style={{ backgroundColor: theme.backgroundColor, color: theme.color, minHeight: '100vh' }}>
@@ -143,42 +174,79 @@ export default function Detail() {
                                             {orchid.name}
                                         </h1>
                                         <div className="orchid-details">
-                                            <br />
-                                            <p><strong style={{ color: dark ? '#ffffff' : theme.cardText }}>Origin:</strong> <span style={{ color: dark ? '#ffffff' : theme.cardText }}>{orchid.origin}</span></p>
-                                            <p><strong style={{ color: dark ? '#ffffff' : theme.cardText }}>Color:</strong> <span style={{ color: dark ? '#ffffff' : theme.cardText }}>{orchid.color}</span></p>
-                                            <p><strong style={{ color: dark ? '#ffffff' : theme.cardText }}>Category:</strong> <span style={{ color: dark ? '#ffffff' : theme.cardText }}>{orchid.category}</span></p>
-                                            <p><strong style={{ color: dark ? '#ffffff' : theme.cardText }}>Rating:</strong> <span style={{ color: dark ? '#ffffff' : theme.cardText }}>{orchid.rating} ⭐</span></p>
-                                            <p><strong style={{ color: dark ? '#ffffff' : theme.cardText }}>Likes:</strong> <span style={{ color: dark ? '#ffffff' : theme.cardText }}>{orchid.numberOfLike}</span></p>
-                                            <div style={{ display: 'flex', gap: '8px', margin: '10px 0 18px 0' }}>
-                                                {orchid.isSpecial && (
-                                                    <span style={{ background: 'linear-gradient(90deg,#ffb347,#ffcc33)', color: '#333', fontWeight: 600, borderRadius: '14px', padding: '4px 16px', fontSize: '0.95em', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', minWidth: '80px', textAlign: 'center', display: 'inline-block' }}>
-                                                        🌸 Special
-                                                    </span>
-                                                )}
-                                                {orchid.isNatural && (
-                                                    <span style={{ background: 'linear-gradient(90deg,#a8e063,#56ab2f)', color: '#fff', fontWeight: 600, borderRadius: '14px', padding: '4px 16px', fontSize: '0.95em', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', minWidth: '80px', textAlign: 'center', display: 'inline-block' }}>
-                                                        🌿 Natural
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <br />
-                                            <p><strong style={{ color: dark ? '#ffffff' : theme.cardText }}>Description:</strong> <span style={{ color: dark ? '#ffffff' : theme.cardText }}>{orchid.detail}</span></p>
+                                            <p><strong>Origin:</strong> {orchid.origin}</p>
+                                            <p><strong>Color:</strong> {orchid.color}</p>
+                                            <p><strong>Category:</strong> {orchid.category}</p>
+                                            <p><strong>Rating:</strong> <StarRating rating={orchid.rating} /></p>
+                                            <p><strong>Likes:</strong> {orchid.numberOfLike}</p>
+                                            {orchid.isSpecial && <span className="badge bg-warning text-dark me-2">🌸 Special</span>}
+                                            {orchid.isNatural && <span className="badge bg-success">🌿 Natural</span>}
+                                            <br /><br />
+                                            <p><strong>Description:</strong> {orchid.detail}</p>
+                                        </div>
+
+                                        {/* Feedback Section */}
+                                        <div className="mt-4">
+                                            <h5>Feedback</h5>
+                                            {orchid.feedback && orchid.feedback.length > 0 ? (
+                                                orchid.feedback.map((f, i) => (
+                                                    <div key={i} className="p-2 border rounded mb-2">
+                                                        <strong>{f.author}</strong> — <StarRating rating={f.rating} />
+                                                        <p className="mb-1">{f.comment}</p>
+                                                        <small className="text-muted">{new Date(f.date).toLocaleString()}</small>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p>No feedback yet.</p>
+                                            )}
+
+                                            {user && (
+                                                hasFeedbackFromUser ? (
+                                                    <div className="alert alert-info mt-3">You already submitted feedback for this orchid.</div>
+                                                ) : (
+                                                    <form onSubmit={handleSubmitFeedback} className="mt-3">
+                                                        <div className="mb-2">
+                                                            <label>Rating</label>
+                                                            <select
+                                                                className="form-select"
+                                                                value={ratingInput}
+                                                                onChange={e => setRatingInput(e.target.value)}
+                                                                style={{ maxWidth: 120 }}
+                                                            >
+                                                                {[5, 4, 3, 2, 1].map(n => (
+                                                                    <option key={n} value={n}>{n}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div className="mb-2">
+                                                            <label>Comment</label>
+                                                            <textarea
+                                                                className="form-control"
+                                                                rows={3}
+                                                                value={commentInput}
+                                                                onChange={e => setCommentInput(e.target.value)}
+                                                            />
+                                                        </div>
+                                                        {feedbackError && <div className="text-danger mb-2">{feedbackError}</div>}
+                                                        <button className="btn btn-primary" disabled={feedbackLoading}>
+                                                            {feedbackLoading ? 'Đang gửi...' : 'Gửi feedback'}
+                                                        </button>
+                                                    </form>
+                                                )
+                                            )}
                                         </div>
                                     </div>
-                                    {user && (
+
+                                    {user && user.role === 'admin' && (
                                         <div className="d-flex justify-content-end gap-3 mt-4">
                                             <button
                                                 className="btn btn-outline-primary"
-                                                style={{ fontWeight: '500', padding: '6px 18px', borderRadius: '7px', color: theme.headerColor, borderColor: theme.headerColor, fontSize: '0.95em', letterSpacing: '0.5px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
                                                 onClick={() => navigate(`/edit/${orchid.id}`)}
-                                                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-                                                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
                                             >
                                                 Update
                                             </button>
                                             <button
                                                 className="btn btn-outline-danger"
-                                                style={{ fontWeight: '500', padding: '6px 18px', borderRadius: '7px', color: '#d9534f', borderColor: '#d9534f', fontSize: '0.95em', letterSpacing: '0.5px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
                                                 onClick={() => setShowDeleteModal(true)}
                                             >
                                                 Delete
@@ -191,6 +259,7 @@ export default function Detail() {
                     </div>
                 </div>
             </div>
+
             {/* Delete Confirmation Modal */}
             {showDeleteModal && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.25)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -199,20 +268,10 @@ export default function Detail() {
                         <p style={{ marginBottom: '24px', color: '#333' }}>Are you sure you want to delete <b>{orchid.name}</b>? This action cannot be undone.</p>
                         {deleteError && <div style={{ color: '#d9534f', marginBottom: '12px' }}>{deleteError}</div>}
                         <div className="d-flex justify-content-center gap-3">
-                            <button
-                                className="btn btn-outline-secondary"
-                                style={{ padding: '6px 18px', borderRadius: '7px', fontSize: '0.95em' }}
-                                onClick={() => setShowDeleteModal(false)}
-                                disabled={deleting}
-                            >
+                            <button className="btn btn-outline-secondary" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
                                 Cancel
                             </button>
-                            <button
-                                className="btn btn-danger"
-                                style={{ padding: '6px 18px', borderRadius: '7px', fontSize: '0.95em', fontWeight: 500 }}
-                                onClick={() => handleDelete(orchid.id)}
-                                disabled={deleting}
-                            >
+                            <button className="btn btn-danger" onClick={() => handleDelete(orchid.id)} disabled={deleting}>
                                 {deleting ? 'Deleting...' : 'Delete'}
                             </button>
                         </div>

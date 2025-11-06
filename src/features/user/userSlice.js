@@ -9,10 +9,19 @@ const userSlice = createSlice({
   initialState,
   reducers: {
     setUser: (state, action) => {
-      state.user = action.payload;
+      const firebaseUser = action.payload;
+      const role =
+        firebaseUser?.email === "lamhuynhhueman.ptht@gmail.com"
+          ? "admin"
+          : "user";
+      const userObj = { ...firebaseUser, role };
+      state.user = userObj;
+      // Lưu vào localStorage khi login
+      localStorage.setItem("user", JSON.stringify(userObj));
     },
     logoutUser: (state) => {
       state.user = null;
+      localStorage.removeItem("user");
     },
   },
 });

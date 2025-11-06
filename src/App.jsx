@@ -7,6 +7,7 @@ import About from './components/About';
 import GoogleLogin from './auth/GoogleLogin';
 import OrchidEditor from './components/OrchidEditor';
 import ProtectedRoute from './auth/ProtectedRoute';
+import Profile from './components/Profile';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function AppContent() {
@@ -30,9 +31,19 @@ function AppContent() {
         <Route path="/special" element={<OrchidsContainer />} />
 
         <Route
-          path="/create"
+          path="/profile"
           element={
             <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route
+          path="/create"
+          element={
+            <ProtectedRoute adminOnly={true}>
               <OrchidEditor mode="create" />
             </ProtectedRoute>
           }
@@ -40,7 +51,7 @@ function AppContent() {
         <Route
           path="/edit/:id"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly={true}>
               <OrchidEditor mode="edit" />
             </ProtectedRoute>
           }

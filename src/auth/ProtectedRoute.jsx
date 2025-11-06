@@ -6,8 +6,8 @@ import { Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 
-export default function ProtectedRoute({ children }) {
-    const [localUser, setLocalUser] = useState(undefined); // undefined = đang kiểm tra đăng nhập
+export default function ProtectedRoute({ children, adminOnly = false }) {
+    const [localUser, setLocalUser] = useState(undefined);
     const user = useSelector(state => state.user.user);
     const dispatch = useDispatch();
 
@@ -24,7 +24,6 @@ export default function ProtectedRoute({ children }) {
     }, [dispatch]);
 
     if (localUser === undefined) {
-        // Đang loading, chưa biết login hay chưa
         return (
             <div style={{ textAlign: 'center', marginTop: '20%' }}>
                 <h3>Checking authentication...</h3>
@@ -32,10 +31,24 @@ export default function ProtectedRoute({ children }) {
         );
     }
 
+    // Nếu chưa login
     if (!user) {
-        return <Navigate to="/login" replace state={{ message: "Vui lòng đăng nhập để tiếp tục" }} />;
+        return <Navigate to="/login" replace state={{ message: "Please login to continue" }} />;
     }
 
-    // Đã đăng nhập -> cho vào app
+    // Nếu route này chỉ dành cho admin
+    if (adminOnly && user.role !== "admin") {
+        setTimeout(() => {
+            window.history.back();
+        }, 2000);
+        return (
+            <div style={{ textAlign: 'center', marginTop: '20%' }}>
+                <h3>You do not have permission to access this page.</h3>
+                <p>Redirecting back...</p>
+            </div>
+        );
+    }
+
+
     return children;
 }
