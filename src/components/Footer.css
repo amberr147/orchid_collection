@@ -1,0 +1,77 @@
+/* Simple footer styles */
+.app-footer {
+  padding: 14px 0;
+  font-size: 0.95rem;
+  /* theme variables set inline from component: --link-color, --muted-color */
+}
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.footer-left {
+  display: flex;
+  flex-direction: column;
+}
+.brand {
+  font-weight: 600;
+}
+.foot-desc {
+  font-size: 0.85rem;
+  color: var(--muted-color, #6c757d);
+}
+.copy {
+  font-size: 0.8rem;
+  color: var(--muted-color, #6c757d);
+}
+.footer-center {
+  display: flex;
+  gap: 12px;
+}
+.footer-center a,
+.footer-right a {
+  color: var(--link-color, #6c3483);
+  text-decoration: none;
+}
+.footer-center a:hover,
+.footer-right a:hover {
+  text-decoration: underline;
+}
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--muted-color, #868e96);
+  color: inherit;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.theme-toggle:hover {
+  opacity: 0.9;
+}
+.socials a {
+  margin-left: 8px;
+}
+
+@media (max-width: 768px) {
+  .footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .footer-center {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+  .footer-right {
+    order: 2;
+    width: 100%;
+    justify-content: space-between;
+  }
+}

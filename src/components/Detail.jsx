@@ -71,7 +71,7 @@ export default function Detail() {
         e.preventDefault();
         if (!user) return;
         if (hasFeedbackFromUser) {
-            setFeedbackError('Bạn đã gửi feedback cho hoa này rồi.');
+            setFeedbackError('You have already submitted feedback for this orchid.');
             return;
         }
 
@@ -100,7 +100,7 @@ export default function Detail() {
             setRatingInput(5);
         } catch (err) {
             console.error(err);
-            setFeedbackError('Lỗi khi gửi feedback.');
+            setFeedbackError('Error submitting feedback.');
         } finally {
             setFeedbackLoading(false);
         }

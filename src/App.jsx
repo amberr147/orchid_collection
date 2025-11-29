@@ -8,6 +8,7 @@ import GoogleLogin from './auth/GoogleLogin';
 import OrchidEditor from './components/OrchidEditor';
 import ProtectedRoute from './auth/ProtectedRoute';
 import Profile from './components/Profile';
+import Footer from './components/Footer';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function AppContent() {
@@ -57,6 +58,7 @@ function AppContent() {
           }
         />
       </Routes>
+      <Footer />
     </>
   );
 }
